@@ -2,6 +2,7 @@ const path = require('path');
 const http = require('http');
 const express = require('express');
 const socketIO = require('socket.io');
+const {generateMessage} = require('./utils/message');
 
 var app = express();
 var server = http.createServer(app);
@@ -25,14 +26,11 @@ socket.broadcast.emit('newMessage',{
   createdAt:new Date().getTime()
 });
 
-  socket.on('createMessage', (message)=>{
+  socket.on('createMessage', (message, callback)=>{
     console.log('Message:', message);
 
-    io.emit('newMessage',{
-       from:message.from,
-       text:message.text,
-       createdAt:new Date().getTime()
-    });
+    io.emit('newMessage',generateMessage(message.from, message.text));
+    callback('This is From Server.');
     // socket.broadcast.emit('newMessage',{
     //   from:message.from,
     //   text:message.text,
