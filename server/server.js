@@ -3,27 +3,35 @@ const http = require('http');
 const express = require('express');
 const socketIO = require('socket.io');
 const {generateMessage, generateLocationMessage} = require('./utils/message');
+const {isRealString} = require('./utils/validation');
+const {Users}  =require('./utils/users');
 
+
+const PORT = process.env.PORT || 3000;
+const publicpath = path.join(__dirname, '/../public');
 var app = express();
 var server = http.createServer(app);
 var io = socketIO(server);
-const PORT = process.env.PORT || 3000;
-const publicpath = path.join(__dirname, '/../public');
+var users = new Users();
 
 app.use(express.static(publicpath));
 
 io.on('connection', (socket)=>{
   console.log('New user Connected');
 
-  socket.emit('newMessage',{
-    from:'Admin',
-    text:'Welcome to the Chat'
-  });
+socket.on("join", (params, callback) => {
+  if(!isRealString(params.name) || !isRealString(params.room))
+    return callback('Name and Room Name are required');
 
-socket.broadcast.emit('newMessage',{
-  from:'Admin',
-  text:'New user Joined',
-  createdAt:new Date().getTime()
+    socket.join(params.room);
+    users.removeUser(socket.id);
+    // socket.leave(params.room);
+    users.addUser(socket.id, params.name, params.room);
+
+    io.to(params.room).emit('updateUserList', users.getUserList(params.room));
+    socket.emit('newMessage', generateMessage('Admin','Welcome to the Chat-App'));
+    socket.broadcast.to(params.room).emit('newMessage',generateMessage('Admin',`${params.name} has Joined.`));
+    callback();
 });
 
   socket.on('createMessage', (message, callback)=>{
@@ -38,9 +46,15 @@ socket.on('createLocationMessage', (coords)=>{
   io.emit('newLocationMessage', generateLocationMessage('Admin', coords.latitude, coords.longitude));
 });
   socket.on('disconnect', ()=>{
-    console.log('User Disconnected');
-  });
+    var user = users.removeUser(socket.id);
 
+      if(user){
+        io.to(user.room).emit('updateUserList', users.getUserList(user.room));
+        io.to(user.room).emit('newMessage', generateMessage('Admin',`${user.name} has left.`));
+      }
+
+
+  });
 });
 
 
