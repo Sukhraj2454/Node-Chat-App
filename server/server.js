@@ -38,6 +38,18 @@ socket.on("join", (params, callback) => {
     var user = users.getUser(socket.id);
     if(user && isRealString(message.text))
     {
+      if(message.text.split(' ')[0] === '-w')
+        {
+          console.log('A whisper');
+          let user2 = users.getUserByName(message.text.split(' ')[1]);
+          if(user2){
+          io.to(user2.id).emit('Whisper',generateMessage(user.name, message.text));
+          io.to(user.id).emit('Whisper',generateMessage(user.name, message.text));}
+          else {
+            io.to(user.id).emit('Whisper',generateMessage('Admin', "Invalid User Entered."));
+          }
+        }
+      else
       io.to(user.room).emit('newMessage',generateMessage(user.name, message.text));
     }
     callback();

@@ -39,7 +39,8 @@ socket.on('updateUserList', function(users) {
   var ol = jQuery('<ol></ol>');
 
   users.forEach(function (user){
-    ol.append(jQuery('<li></li>').text(user));
+    ol.attr("style", "cursor:pointer;")
+    ol.append(jQuery('<li class="User"></li>').text(user));
   });
   jQuery('#users').html(ol);
 });
@@ -82,12 +83,26 @@ jQuery('#message-form').on('submit', function(e){
 var messageTextBox = jQuery('[name=message]');
 
 socket.emit('createMessage',{
+    to:'Sukhraj',
     text: messageTextBox.val()
   }, function () {
     messageTextBox.val('');
   });
 });
 
+socket.on('Whisper',function (message) {
+  var formattedTime = moment(message.createdAt).format('h:mm a');
+  var template = jQuery('#Whisper-template').html();
+
+  var html = Mustache.render(template,{
+    text: message.text,
+    from: message.from,
+    createdAt: formattedTime
+  });
+
+  jQuery('#messages').append(html);
+  scrollToBottom();
+});
 
 var locationButton = jQuery('#send-location');
 
